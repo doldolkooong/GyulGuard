@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 190" role="img" aria-label="잎사귀를 단 제주 감귤 분석 비서 귤몽"><title>잎사귀를 단 제주 감귤 분석 비서 귤몽</title><defs><linearGradient id="peel" x1="0" y1="0" x2=".75" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#ffc04f"/><stop offset=".48" stop-color="#ffac30"/><stop offset="1" stop-color="#fa8b1e"/></linearGradient>
+<linearGradient id="sky" x2="0" y2="1"><stop stop-color="#fff1d3"/><stop offset="1" stop-color="#fff8e7"/></linearGradient>
+<linearGradient id="fade"><stop stop-color="#fff5df"/><stop offset=".37" stop-color="#fff5df" stop-opacity=".98"/><stop offset=".66" stop-color="#fff5df" stop-opacity=".08"/><stop offset="1" stop-color="#fff5df" stop-opacity="0"/></linearGradient></defs><g stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="102" cy="177" rx="62" ry="7" fill="#8c7844" opacity=".17"/>
+<path d="M78 145l-2 22m47-22 3 22" fill="none" stroke="#734327" stroke-width="7"/>
+<path d="M77 163c-8-3-18 1-20 8-1 4 3 5 9 5h14c4 0 4-8 2-11zM124 163c8-3 18 1 20 8 1 4-3 5-9 5h-13c-5 0-5-8-3-11z" fill="#397653" stroke="#365c40" stroke-width="2.5"/>
+<path d="M48 95c-8-2-13-8-15-17-1-5-5-7-8-5-7 5-2 19 3 26 5 7 12 13 22 14m106-14c9 0 15 7 18 14 3 7 1 13-3 13-5 0-6-11-16-11" fill="#ffac35" stroke="#ae632b" stroke-width="3"/>
+<path d="M101 43c12-5 27-4 38 1 20 9 31 30 32 53 2 36-22 61-66 62-46 1-74-18-75-53-1-26 9-48 29-59 11-6 27-9 42-4z" fill="url(#peel)" stroke="#ad6028" stroke-width="3.4"/>
+<path d="M99 46c1-8 3-15 7-19" fill="none" stroke="#73542c" stroke-width="6"/>
+<path d="M105 32c-10-18-29-22-48-16 6 20 24 26 45 19z" fill="#4b9661" stroke="#396d49" stroke-width="2.5"/>
+<path d="M64 18c11 2 22 6 33 13" fill="none" stroke="#a7c77b" stroke-width="2"/>
+<path d="M106 28c4-12 14-17 28-16-3 11-13 19-28 19" fill="#82a95c" stroke="#4b7650" stroke-width="2.1"/>
+<path d="M83 46c5 2 10 4 15 3m8-1 6-3" fill="none" stroke="#d7852b" stroke-width="2"/>
+<ellipse cx="65" cy="99" rx="11" ry="6" fill="#f38b48"/><ellipse cx="133" cy="99" rx="11" ry="6" fill="#f38b48"/>
+<ellipse cx="77" cy="86" rx="4.3" ry="6.1" fill="#503323"/><ellipse cx="122" cy="86" rx="4.3" ry="6.1" fill="#503323"/>
+<circle cx="76" cy="84" r="1.25" fill="#fff4cd"/><circle cx="121" cy="84" r="1.25" fill="#fff4cd"/>
+<path d="M91 94q8 11 17-1" fill="none" stroke="#633923" stroke-width="3.6"/>
+<g fill="#cf772b" opacity=".65"><circle cx="51" cy="83" r="1.5"/><circle cx="55" cy="79" r="1"/><circle cx="49" cy="89" r="1"/><circle cx="147" cy="84" r="1.5"/><circle cx="150" cy="91" r="1"/><circle cx="145" cy="89" r="1"/><circle cx="56" cy="122" r="1.2"/><circle cx="61" cy="126" r="1"/><circle cx="145" cy="126" r="1.3"/></g>
+<path d="M41 124c14 14 36 21 59 20 25 0 48-7 63-22-6 25-26 37-58 38-30 1-55-9-64-36z" fill="#477e58"/>
+<path d="M43 122c13 12 34 17 52 16l4 8c-24 1-42-4-55-14z" fill="#8cad6a"/>
+<path d="M98 139l15 7-5 15-12-13-7-5z" fill="#f6d488" stroke="#ae823f" stroke-width="1.5"/>
+<path d="M46 66q5-8 13-12" fill="none" stroke="#ffe09a" stroke-width="5"/>
+</g></svg>
