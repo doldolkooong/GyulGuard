@@ -1,0 +1,11 @@
+{
+  "title": "서귀포시 감귤 생산 정보",
+  "publisher": "제주특별자치도 서귀포시",
+  "url": "https://www.jejudatahub.net/data/view/data/1313",
+  "provider_url": "https://www.data.go.kr/data/15048184/fileData.do",
+  "hub_download_url": "https://www.jejudatahub.net/api/file?id=4996&fileId=4086",
+  "hub_url": "https://www.jejudatahub.net/data/view/data/1313",
+  "download_url": "https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000002917609&fileDetailSn=1&insertDataPrcus=N",
+  "reference_date": "2024-05-13",
+  "notes": "제주데이터허브 1313번 첨부 CSV와 서귀포시 갱신판을 대조·결합. 2012~2022년 서귀포시 15개 읍면동의 재배유형별 연간 생산량(톤), 재배면적(ha), 농가수(호). 가격·출하량·당도·등급은 미수록."
+}
