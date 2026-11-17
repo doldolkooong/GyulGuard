@@ -16,6 +16,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      target: api
     environment:
       DATABASE_URL: postgresql+psycopg://gyul:${POSTGRES_PASSWORD:-gyul_local}@db/gyul
       LLM_PROVIDER: ${LLM_PROVIDER:-local}
