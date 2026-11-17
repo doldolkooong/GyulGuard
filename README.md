@@ -6,6 +6,17 @@
 
 ## 빠른 시작
 
+### Render 무료 시연 배포
+
+1. 이 폴더의 **내용물**을 GitHub 저장소 루트에 올린다. GitHub 첫 화면에서 `render.yaml`, `backend/`, `frontend/`, `data/`가 함께 보여야 한다.
+2. [Render Dashboard](https://dashboard.render.com)에서 **New → Blueprint**를 선택하고 해당 저장소와 브랜치를 연결한다.
+3. 미리보기에서 Web Service 1개와 Free 플랜을 확인한 뒤 배포한다. 빌드 명령과 시작 명령은 동봉한 Dockerfile에 정의되어 있다.
+4. 서비스 상태가 **Live**가 되면 Render가 표시한 `.onrender.com` 주소를 연다. 같은 주소의 `/api/health`에서 상태를 확인하고 대시보드의 **AI 분석 시작**으로 첫 분석을 실행한다.
+
+이 구성은 React 화면과 FastAPI를 한 서비스에서 제공하며 API 키 없이 동작한다. 무료 시연용 SQLite는 임시 파일시스템을 사용해 재시작·재배포·휴면 시 업로드와 보고서 이력이 사라질 수 있다. 기본 공식 자료는 시작할 때 다시 등록된다. 무료 서비스는 요청이 15분간 없으면 휴면 상태가 되며 첫 접속 시 기동 시간이 걸릴 수 있다. [Render 무료 플랜 안내](https://render.com/docs/free)
+
+### Docker Compose로 실행
+
 Docker Engine과 Compose v2가 실행되는 환경에서 프로젝트 루트에서 실행한다.
 
 ```sh
