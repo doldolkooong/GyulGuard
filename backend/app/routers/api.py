@@ -70,9 +70,11 @@ def statistics(
     year: int | None = None,
     region: str | None = None,
     variety: str | None = None,
+    port: str | None = None,
+    week: str | None = None,
 ):
     frame = records(db, resolve(db, dataset_id).id)
-    for key, value in (("year", year), ("region", region), ("variety", variety)):
+    for key, value in (("year", year), ("region", region), ("variety", variety), ("port", port), ("week", week)):
         if value is not None:
             frame = frame[frame[key] == value] if key in frame else frame.iloc[0:0]
     return {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Component, useState, type ReactNode, type ErrorInfo } from "react";
 import {
   NavLink,
   Routes,
@@ -24,6 +24,38 @@ import { Dashboard, Explorer, Analytics } from "./pages/Data";
 import { Agent, Results, Audit } from "./pages/Strategy";
 import { Wait } from "./components/UI";
 import s from "./styles/App.module.css";
+// 분석 화면 오류가 다른 메뉴까지 종료시키지 않도록 격리합니다.
+class AnalyticsErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; message: string }
+> {
+  state = { hasError: false, message: "" };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error.message };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[GyulGuard Analytics]", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <section role="alert" style={{ padding: 24, border: "1px solid #e6d8c5", borderRadius: 16, background: "#fffdf8" }}>
+          <h2>분석 화면을 표시하지 못했습니다.</h2>
+          <p style={{ marginTop: 10 }}>다른 메뉴는 정상적으로 사용할 수 있습니다. 서버 응답과 브라우저 콘솔을 확인해 주세요.</p>
+          <p style={{ marginTop: 10, fontSize: 13, color: "#766655" }}>오류: {this.state.message}</p>
+          <button style={{ marginTop: 14, padding: "8px 16px" }} onClick={() => this.setState({ hasError: false, message: "" })}>
+            다시 시도
+          </button>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const nav = [
   ["/", "대시보드", LayoutDashboard],
   ["/data", "데이터 탐색기", Database],
@@ -35,14 +67,15 @@ const nav = [
 ] as const;
 export default function App() {
   const [revision, refresh] = useState(0),
-    [selected, select] = useState(localStorage.getItem("gyul-dataset") || ""),
+    [selected, select] = useState(""),
     [open, toggle] = useState(false);
   const list = useData<Dataset[]>("/datasets", revision),
-    ds = list.data?.find((d) => d.id === selected) || list.data?.[0];
+    ds = list.data?.find((d) => d.id === selected) ||
+    list.data?.find((d) => d.name === "서귀포시 감귤 생산 정보") ||
+    list.data?.[0];
   const loc = useLocation(),
     title = nav.find(([path]) => path === loc.pathname)?.[1] || "대시보드";
   function choose(id: string) {
-    localStorage.setItem("gyul-dataset", id);
     select(id);
   }
   return (
@@ -113,7 +146,7 @@ export default function App() {
               />
               <Route
                 path="/analytics"
-                element={<Analytics key={ds.id} ds={ds} />}
+                element={<AnalyticsErrorBoundary key={ds.id}><Analytics ds={ds} /></AnalyticsErrorBoundary>}
               />
               <Route path="/agent" element={<Agent ds={ds} />} />
               <Route path="/scenarios" element={<Results />} />

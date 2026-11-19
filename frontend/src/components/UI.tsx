@@ -12,10 +12,22 @@ import {
   BarChart,
   Bar,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
 import type { Row } from "../types";
 import { num } from "../api/client";
 import s from "../styles/App.module.css";
+
+// 구버전 API가 정의되지 않은 배열을 반환해도 화면 전체가 중단되지 않게 합니다.
+function validRows(rows: Row[] | null | undefined): Row[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter(
+    (row) => row != null && typeof row.label === "string" &&
+      typeof row.value === "number" && Number.isFinite(row.value),
+  );
+}
 export function Empty({ children }: { children: ReactNode }) {
   return (
     <div className={s.empty}>
@@ -63,13 +75,16 @@ export function Chart({
   rows,
   line = false,
   unit = "톤",
+  labelWidth = 86,
 }: {
-  rows: Row[];
+  rows?: Row[] | null;
   line?: boolean;
   unit?: string;
+  labelWidth?: number;
 }) {
   const id = useId().replaceAll(":", "");
-  if (!rows.length)
+  const safeRows = validRows(rows);
+  if (!safeRows.length)
     return (
       <div className={s.empty}>
         <Inbox />
@@ -83,7 +98,7 @@ export function Chart({
       <ResponsiveContainer width="100%" height="100%">
         {line ? (
           <AreaChart
-            data={rows}
+            data={safeRows}
             margin={{ left: 4, right: 15, top: 12, bottom: 0 }}
           >
             <defs>
@@ -105,7 +120,7 @@ export function Chart({
           </AreaChart>
         ) : (
           <BarChart
-            data={rows}
+            data={safeRows}
             layout="vertical"
             margin={{ left: 6, right: 24, top: 2, bottom: 0 }}
           >
@@ -113,19 +128,50 @@ export function Chart({
             <YAxis
               type="category"
               dataKey="label"
-              width={86}
+              width={labelWidth}
               tick={axis}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip formatter={tip} />
             <Bar dataKey="value" radius={[0, 5, 5, 0]} maxBarSize={21}>
-              {rows.map((r, i) => (
+              {safeRows.map((r, i) => (
                 <Cell key={r.label} fill={i === 0 ? "#ed8724" : "#e8b978"} />
               ))}
             </Bar>
           </BarChart>
         )}
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+
+/** 실제 집계 비율을 사용합니다. 수치가 없는 항목은 표시하지 않습니다. */
+export function ShareDonut({ rows }: { rows?: Row[] | null }) {
+  const valid = validRows(rows).filter((r) => r.value > 0);
+  if (!valid.length) return <Empty>비중을 계산할 출하량이 없습니다.</Empty>;
+  return (
+    <div className={s.chart}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={valid}
+            dataKey="value"
+            nameKey="label"
+            cx="50%"
+            cy="45%"
+            innerRadius={54}
+            outerRadius={86}
+            paddingAngle={2}
+          >
+            {valid.map((r, i) => (
+              <Cell key={r.label} fill={i === 0 ? "#f18d29" : "#398657"} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(value) => `${num(Number(value), 2)}%`} />
+          <Legend verticalAlign="bottom" />
+        </PieChart>
       </ResponsiveContainer>
     </div>
   );
