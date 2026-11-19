@@ -558,3 +558,169 @@
   font-size: 20px;
   font-weight: 700;
 }
+
+/* 데이터별 분석 카드: 기존 귤지킴이 스타일 유지 */
+.qualityMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.qualityMetrics > div {
+  padding: 17px;
+  border-radius: 12px;
+  background: #fff5e6;
+}
+.qualityMetrics small, .qualityMetrics strong {
+  display: block;
+}
+.qualityMetrics strong {
+  font-size: 22px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 800px) {
+  .qualityMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* 전략 비교: 총액이 아닌 기준 대비 손익 차이를 시각화합니다. */
+.textLink,
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.textLink { margin-top: 8px; }
+.secondaryLink {
+  padding: 10px 16px;
+  background: #fffefa;
+  border: 1px solid #e1d7c6;
+  border-radius: 9px;
+  text-decoration: none;
+}
+.compareKpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.compareKpis > div {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e4dfd3;
+  border-radius: 13px;
+  background: #fffefa;
+}
+.compareKpis small,
+.compareKpis strong { display: block; }
+.compareKpis strong {
+  margin-top: 9px;
+  font-size: clamp(18px, 1.8vw, 27px);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.deltaLegend {
+  display: flex;
+  justify-content: space-between;
+  max-width: calc(100% - 285px);
+  margin: 0 70px 12px 150px;
+  color: #756e65;
+  font-size: 11px;
+}
+.deltaList { display: grid; gap: 16px; margin: 17px 0; }
+.deltaRow {
+  display: grid;
+  grid-template-columns: 135px minmax(0, 1fr) 115px 75px;
+  align-items: center;
+  gap: 13px;
+  font-size: 13px;
+}
+.deltaName { font-weight: 700; }
+.deltaTrack {
+  position: relative;
+  height: 17px;
+  background: #f6f1e9;
+  border-radius: 6px;
+}
+.deltaCenter {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: #7d7061;
+  left: 50%;
+  z-index: 1;
+}
+.deltaBar {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  border-radius: 4px;
+}
+.deltaBarNegative { background: #ee924b; }
+.deltaBarPositive { background: #3d9262; }
+.deltaPositive { color: #28784d; }
+.deltaNegative { color: #b45b19; }
+.deltaRow strong { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.deltaRow small { text-align: center; white-space: nowrap; }
+.scenarioChoices { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.scenarioChoice {
+  border: 1px solid #e4d7c5;
+  border-radius: 9px;
+  background: #fffdf9;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+.scenarioChoiceActive {
+  border-color: #a85b20;
+  background: #ffedcf;
+  color: #8c420f;
+  font-weight: 700;
+}
+.detailNote {
+  border-radius: 9px;
+  background: #fff6e8;
+  padding: 12px 14px;
+}
+
+/* 보고서 센터: 문서형 요약·출처·다운로드를 중심으로 분리합니다. */
+.reportCover {
+  border: 1px solid #e4d6ba;
+  border-radius: 16px;
+  padding: 26px;
+  background: linear-gradient(120deg, #fff2df, #fffefa);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.reportCover small { color: #87541c; font-weight: 700; }
+.reportCover h2 { font-size: clamp(22px, 2.4vw, 31px); margin: 6px 0 10px; }
+.reportCover p { color: #756b5e; font-size: 13px; margin-top: 5px; }
+.reportCover img { width: 96px; height: 96px; object-fit: contain; }
+.reportConclusion { font-size: 21px; color: #3d7c51; margin: 5px 0 12px; }
+.reportInfoList { display: grid; margin: 0; gap: 4px; }
+.reportInfoList > div {
+  display: grid;
+  grid-template-columns: minmax(105px, 1fr) minmax(0, 1.5fr);
+  align-items: start;
+  border-bottom: 1px solid #f0ede7;
+  padding: 9px 0;
+  gap: 12px;
+}
+.reportInfoList dt { color: #756e63; font-size: 13px; }
+.reportInfoList dd { margin: 0; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 11px !important; }
+.reportFooter { color: #81766a; font-size: 12px; padding: 8px 0; }
+@media (max-width: 1050px) {
+  .compareKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .deltaLegend { max-width: none; margin: 0 0 10px; }
+  .deltaRow { grid-template-columns: 1fr 75px; gap: 7px; }
+  .deltaTrack { grid-column: 1 / -1; grid-row: 2; }
+  .deltaRow small { grid-column: 2; grid-row: 1; }
+  .deltaRow strong { grid-column: 1 / -1; text-align: right; }
+  .reportCover img { width: 60px; height: 60px; }
+  .reportCover { padding: 18px; }
+}

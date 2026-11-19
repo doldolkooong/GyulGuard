@@ -19,12 +19,33 @@ export type Summary = {
   rows: number;
   latest: number | null;
   production_t: number | null;
+  shipment_t: number | null;
+  avg_brix: number | null;
+  min_brix: number | null;
+  max_brix: number | null;
   regions: number;
+  ports: number;
+  dates: number;
+  weeks: number;
   varieties: number;
   years: number[];
   region_names: string[];
   variety_names: string[];
+  port_names: string[];
+  week_names: string[];
 };
+export type Trends = {
+  production: Row[];
+  shipment: Row[];
+  varieties: Row[];
+  area_region: Row[];
+  shipment_share: Row[];
+  shipment_by_port_date: Row[];
+  brix_week: Row[];
+  brix_city: Row[];
+  brix_distribution: Row[];
+};
+export type QualityStats = { brix: { mean: number; min: number; max: number; count: number } | null; grades: Record<string, number> };
 export type Inputs = {
   inventory_kg: number;
   expected_unit_price_now: number;

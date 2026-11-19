@@ -4,7 +4,7 @@ import { ArrowRight, Download, Play, CheckCircle2 } from "lucide-react";
 import type { Dataset, Inputs, Run, Trace, Report, Saved } from "../types";
 import { api, date, num } from "../api/client";
 import { useData } from "../hooks/useData";
-import { Panel, Empty, Wait, Chart } from "../components/UI";
+import { Panel, Empty, Wait } from "../components/UI";
 import s from "../styles/App.module.css";
 
 const fields = [
@@ -174,187 +174,340 @@ export function Agent({ ds }: { ds: Dataset }) {
   );
 }
 
-export function Results({ reports = false }: { reports?: boolean }) {
-  const list = useData<Saved[]>("/reports"),
-    [params, setParams] = useSearchParams();
-  const id = params.get("run") || list.data?.[0]?.id;
-  const r = useData<Report>(id ? "/reports/" + id : null);
-  if (!list.data) return <Wait error={list.error} />;
-  if (!id)
-    return (
-      <Empty>
-        저장된 분석이 없습니다. <Link to="/agent">첫 분석 시작 →</Link>
-      </Empty>
-    );
-  const result = r.data;
+const won = (value: number | null | undefined) =>
+  value == null || !Number.isFinite(value) ? "—" : `${num(Math.round(value))}원`;
+
+const signedWon = (value: number) =>
+  `${value > 0 ? "+" : value < 0 ? "−" : ""}${won(Math.abs(value))}`;
+
+function SavedReportSelector({
+  items,
+  id,
+  onChange,
+}: {
+  items: Saved[];
+  id: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <label className={s.selectLine}>
+      저장된 분석
+      <select value={id} onChange={(e) => onChange(e.target.value)}>
+        {items.map((item) => (
+          <option key={item.id} value={item.id}>
+            {date(item.created)} · {item.recommended || "조건 충족안 없음"} · {item.id.slice(0, 6)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/** 출하 방식별 차이를 비교하는 화면입니다. 보고서 다운로드·근거 설명은 별도 화면에 둡니다. */
+function ScenarioComparison({ result, id }: { result: Report; id: string }) {
+  const scenarios = result.scenarios ?? [];
+  const baseline =
+    scenarios.find((item) => item.name.includes("즉시") && item.schedule.length) ??
+    scenarios.find((item) => item.schedule.length);
+  const recommended = scenarios.find((item) => item.name === result.recommended);
+  const initial = recommended?.name ?? scenarios[0]?.name ?? "";
+  const [selectedName, setSelectedName] = useState(initial);
+  useEffect(() => setSelectedName(initial), [initial, id]);
+  const selected = scenarios.find((item) => item.name === selectedName) ?? scenarios[0];
+  const baseNet = baseline?.net ?? 0;
+  const maxDifference = Math.max(
+    1,
+    ...scenarios
+      .filter((item) => item.schedule.length)
+      .map((item) => Math.abs(item.net - baseNet)),
+  );
+  if (!scenarios.length) return <Empty>저장된 출하 시나리오가 없습니다.</Empty>;
+
   return (
     <>
-      <label className={s.selectLine}>
-        저장된 보고서
-        <select value={id} onChange={(e) => setParams({ run: e.target.value })}>
-          {list.data.map((x) => (
-            <option key={x.id} value={x.id}>
-              {date(x.created)} · {x.recommended || "조건 충족안 없음"} ·{" "}
-              {x.id.slice(0, 6)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {result ? (
-        <>
-          <section className={s.recommend}>
-            <small>{result.basis}</small>
-            <h2>
-              <CheckCircle2 />
-              {result.recommended || "조건 충족안 없음"}
-            </h2>
-            <p>{result.explanation}</p>
-            <p>
-              대안 · {result.alternative || "서로 다른 실행 가능 일정 없음"}
-            </p>
-          </section>
-          <div className={s.grid}>
-            <Panel
-              title="예상 순수입 비교"
-              meta="매출에서 출하비와 보관비 차감 · 원"
+      <section className={s.recommend}>
+        <small>가정 기반 시뮬레이션 · 최종 전략 비교</small>
+        <h2>
+          <CheckCircle2 size={20} />
+          {result.recommended ?? "조건을 만족하는 전략이 없습니다"}
+        </h2>
+        <p>{result.explanation}</p>
+        <Link className={s.textLink} to={`/reports?run=${encodeURIComponent(id)}`}>
+          분석 근거와 보고서 보기 <ArrowRight size={15} />
+        </Link>
+      </section>
+
+      <div className={s.compareKpis}>
+        <div>
+          <small>즉시 전량 출하 · 기준</small>
+          <strong>{baseline ? won(baseline.net) : "—"}</strong>
+        </div>
+        <div>
+          <small>추천 전략 예상 순수입</small>
+          <strong>{recommended ? won(recommended.net) : "—"}</strong>
+        </div>
+        <div>
+          <small>기준 대비 예상 손익</small>
+          <strong className={(recommended?.net ?? baseNet) >= baseNet ? s.deltaPositive : s.deltaNegative}>
+            {recommended && baseline ? signedWon(recommended.net - baseNet) : "—"}
+          </strong>
+        </div>
+        <div>
+          <small>당일 필요한 순현금</small>
+          <strong>{won(result.params.min_cash_needed)}</strong>
+        </div>
+      </div>
+
+      <Panel title="즉시 전량 대비 순수입 증감" meta="차이값 중심 비교 · 0원을 기준으로 좌측은 감소, 우측은 증가">
+        <div className={s.deltaLegend}>
+          <span>손익 감소</span><span>기준 0원</span><span>손익 증가</span>
+        </div>
+        <div className={s.deltaList}>
+          {scenarios.map((item) => {
+            const hasPlan = item.schedule.length > 0;
+            const diff = hasPlan ? item.net - baseNet : 0;
+            const width = (Math.abs(diff) / maxDifference) * 47;
+            return (
+              <div className={s.deltaRow} key={item.name}>
+                <span className={s.deltaName}>{item.name}</span>
+                <div className={s.deltaTrack} role="img" aria-label={`${item.name}: ${hasPlan ? signedWon(diff) : "계산 불가"}`}>
+                  <i className={s.deltaCenter} />
+                  {hasPlan && diff !== 0 && (
+                    <i
+                      className={`${s.deltaBar} ${diff > 0 ? s.deltaBarPositive : s.deltaBarNegative}`}
+                      style={{ left: `${diff > 0 ? 50 : 50 - width}%`, width: `${width}%` }}
+                    />
+                  )}
+                </div>
+                <strong className={diff > 0 ? s.deltaPositive : diff < 0 ? s.deltaNegative : ""}>
+                  {hasPlan ? signedWon(diff) : "배분 불가"}
+                </strong>
+                <small>{item.feasible ? "조건 충족" : "조건 미충족"}</small>
+              </div>
+            );
+          })}
+        </div>
+        <small>수치는 사용자가 입력한 가격 가정에 따른 계산값이며 미래 수익을 보장하지 않습니다.</small>
+      </Panel>
+
+      <Panel title="전략별 손익·현금 조건 비교" meta="최고 순수입과 실제 실행 가능한 전략은 다를 수 있습니다">
+        <div className={s.scroll}>
+          <table>
+            <thead>
+              <tr>
+                <th>출하 전략</th><th>예상 순수입</th><th>당일 순현금</th>
+                <th>보관비</th><th>출하비</th><th>조건</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scenarios.map((item) => (
+                <tr key={item.name}>
+                  <td><b>{item.name}</b></td>
+                  <td>{item.schedule.length ? won(item.net) : "—"}</td>
+                  <td>{item.schedule.length ? won(item.cash_today) : "—"}</td>
+                  <td>{won(item.storage)}</td>
+                  <td>{won(item.shipping)}</td>
+                  <td>{item.feasible ? "충족" : "미충족"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
+      <Panel title="출하 일정 상세 비교" meta="전략을 선택하면 실제 계산된 일차별 출하량이 표시됩니다">
+        <div className={s.scenarioChoices} role="group" aria-label="출하 전략 선택">
+          {scenarios.map((item) => (
+            <button
+              key={item.name}
+              type="button"
+              aria-pressed={selected?.name === item.name}
+              className={`${s.scenarioChoice} ${selected?.name === item.name ? s.scenarioChoiceActive : ""}`}
+              onClick={() => setSelectedName(item.name)}
             >
-              <Chart
-                unit="원"
-                rows={result.scenarios
-                  .filter((x) => x.schedule.length)
-                  .map((x) => ({ label: x.name, value: x.net }))}
-              />
-            </Panel>
-            <Panel title="분석 조건 및 한계" meta={result.source.title}>
-              <p>
-                보유 {num(result.params.inventory_kg)} kg · 보관{" "}
-                {result.params.max_storage_days}일
-              </p>
-              <p>
-                현재 {num(result.params.expected_unit_price_now)}원/kg · 미래
-                가정{" "}
-                {num(
-                  result.params.expected_unit_price_future ??
-                    result.params.expected_unit_price_now,
-                )}
-                원/kg
-              </p>
-              <p>{result.limits}</p>
-              {result.source.url && (
-                <a href={result.source.url}>데이터 출처 ↗</a>
-              )}
-            </Panel>
-          </div>
-          <div className={s.scenarioCards}>
-            {result.scenarios.map((x) => (
-              <section key={x.name}>
-                <small>
-                  {x.feasible ? "현금 조건 충족" : "현금 조건 미충족"}
-                </small>
-                <h3>{x.name}</h3>
-                <p>{x.schedule.length ? num(x.net) + "원" : "배분 불가"}</p>
-                <small>예상 순수입 · 실제 {x.schedule.length}회 출하</small>
-              </section>
-            ))}
-          </div>
-          <Panel
-            title="출하 일정과 비용"
-            meta="일차별 출하량 · 당일 현금은 당일 출하비 차감 후 금액"
-          >
+              {item.name}
+            </button>
+          ))}
+        </div>
+        {selected?.schedule.length ? (
+          <>
             <div className={s.scroll}>
               <table>
-                <thead>
-                  <tr>
-                    {[
-                      "시나리오",
-                      "일차 / 물량",
-                      "예상 순수입",
-                      "보관비",
-                      "출하비",
-                      "당일 순현금",
-                      "위험 조정 점수",
-                      "조건",
-                    ].map((x) => (
-                      <th key={x}>{x}</th>
-                    ))}
-                  </tr>
-                </thead>
+                <thead><tr><th>출하 일차</th><th>출하 물량</th><th>총 보유량 대비</th></tr></thead>
                 <tbody>
-                  {result.scenarios.map((x) => (
-                    <tr key={x.name}>
-                      <td>{x.name}</td>
-                      <td>
-                        {x.schedule
-                          .map((b) => b.day + "일 / " + num(b.kg) + "kg")
-                          .join(" · ") || "배분 불가"}
-                      </td>
-                      <td>{x.schedule.length ? num(x.net) : "—"}</td>
-                      <td>{num(x.storage)}</td>
-                      <td>{num(x.shipping)}</td>
-                      <td>{num(x.cash_today)}</td>
-                      <td>{x.feasible ? num(x.score) : "—"}</td>
-                      <td>{x.feasible ? "충족" : "미충족"}</td>
+                  {selected.schedule.map((batch, i) => (
+                    <tr key={`${batch.day}-${i}`}>
+                      <td>{batch.day === 0 ? "당일" : `${batch.day}일 후`}</td>
+                      <td>{num(batch.kg)}kg</td>
+                      <td>{num((batch.kg / result.params.inventory_kg) * 100, 1)}%</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </Panel>
-          {!!result.sensitivity?.length && (
-            <Panel
-              title="미래 단가 가정별 순수입"
-              meta="출하 일정 고정 · 마지막 날 단가를 기준 대비 −10%, 유지, +10%로 변경 · 원"
-            >
+            <p className={s.detailNote}>
+              예상 매출 {won(selected.gross)} − 보관비 {won(selected.storage)} − 출하비 {won(selected.shipping)}
+              = <b>순수입 {won(selected.net)}</b>
+            </p>
+            {!selected.feasible && <Wait error="입력한 당일 현금·보관 기간 제약을 충족하지 못하는 전략입니다." />}
+          </>
+        ) : (
+          <Empty>해당 조건에서는 출하 물량을 배분할 수 없습니다.</Empty>
+        )}
+      </Panel>
+
+      {!!result.sensitivity?.length && (
+        <Panel title="미래 가격 변동 시나리오" meta="출하 일정 고정 · 미래 단가를 변경한 가상 민감도 분석">
+          <div className={s.scroll}>
+            <table>
+              <thead>
+                <tr>
+                  <th>출하 전략</th>
+                  {result.sensitivity.map((item) => (
+                    <th key={item.label}>{item.label} · {num(item.price)}원/kg</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {scenarios.filter((item) => item.schedule.length).map((item) => (
+                  <tr key={item.name}>
+                    <td>{item.name}</td>
+                    {result.sensitivity?.map((caseItem) => (
+                      <td key={caseItem.label}>{won(caseItem.net[item.name])}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
+      <Link className={s.primary} to={`/reports?run=${encodeURIComponent(id)}`}>
+        보고서 센터에서 분석 근거 확인 <ArrowRight size={16} />
+      </Link>
+    </>
+  );
+}
+
+/** 분석의 근거와 다운로드를 다루는 문서형 화면입니다. */
+function ReportCenter({ result, id, saved }: { result: Report; id: string; saved?: Saved }) {
+  const scenario = result.scenarios?.find((item) => item.name === result.recommended);
+  const sourceUrl = /^https?:\/\//i.test(result.source.url ?? "") ? result.source.url : null;
+  const inputRows = [
+    ["보유 물량", `${num(result.params.inventory_kg)}kg`],
+    ["현재 단가 가정", `${num(result.params.expected_unit_price_now)}원/kg`],
+    ["미래 단가 가정", `${num(result.params.expected_unit_price_future ?? result.params.expected_unit_price_now)}원/kg`],
+    ["보관비", `${num(result.params.storage_cost_per_day, 2)}원/kg·일`],
+    ["회당 출하비", won(result.params.shipping_cost_per_batch)],
+    ["최대 보관기간", `${num(result.params.max_storage_days)}일`],
+    ["최소 당일 현금", won(result.params.min_cash_needed)],
+    ["전략 선호도", result.params.risk_preference],
+  ];
+  return (
+    <>
+      <section className={s.reportCover}>
+        <div>
+          <small>GYULGUARD · AI AGENT ANALYSIS REPORT</small>
+          <h2>감귤 출하 의사결정 분석 보고서</h2>
+          <p>분석 시각 {saved ? date(saved.created) : "—"} · 분석 ID {id.slice(0, 8)}</p>
+          <p>가정 기반 시뮬레이션 · 실제 미래 가격·수익을 보장하지 않습니다.</p>
+        </div>
+        <img src="/mascot.svg" alt="귤몽" />
+      </section>
+      <div className={s.actions}>
+        {(["pdf", "csv"] as const).map((format) => (
+          <a
+            key={format}
+            className={s.primary}
+            href={`/api/reports/${encodeURIComponent(id)}/download?format=${format}`}
+            download
+          >
+            <Download size={16} /> {format.toUpperCase()} 다운로드
+          </a>
+        ))}
+        <Link className={s.secondaryLink} to={`/scenarios?run=${encodeURIComponent(id)}`}>
+          시나리오 상세 비교 <ArrowRight size={15} />
+        </Link>
+      </div>
+      <Panel title="01. 분석 결과 요약" meta={result.basis}>
+        <h3 className={s.reportConclusion}>{result.recommended ?? "조건을 만족하는 출하 전략이 없습니다"}</h3>
+        <p>{result.explanation}</p>
+        <p><b>검토할 대안:</b> {result.alternative ?? "별도 실행 가능 대안 없음"}</p>
+      </Panel>
+      <div className={s.grid}>
+        <Panel title="02. 분석 입력 조건" meta="사용자가 설정한 물량·가격·비용·운영 조건">
+          <dl className={s.reportInfoList}>
+            {inputRows.map(([label, value]) => (
+              <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+            ))}
+          </dl>
+        </Panel>
+        <Panel title="03. 데이터 출처 및 재현 정보" meta="동일 조건의 반복 분석을 위한 식별 정보">
+          <dl className={s.reportInfoList}>
+            <div><dt>데이터셋</dt><dd>{result.source.title}</dd></div>
+            <div><dt>데이터 버전</dt><dd className={s.mono}>{result.version || "—"}</dd></div>
+            <div><dt>분석 실행 ID</dt><dd className={s.mono}>{id}</dd></div>
+            <div><dt>분석 기준</dt><dd>{result.basis}</dd></div>
+          </dl>
+          {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer">공식 데이터 출처 확인 ↗</a>}
+          <p><Link to="/audit">실제 Tool 호출·검증 로그 확인 →</Link></p>
+        </Panel>
+      </div>
+      <div className={s.grid}>
+        <Panel title="04. 권장 출하 계획" meta="선정된 최종 전략의 비용 및 일정만 요약">
+          {scenario?.schedule.length ? (
+            <>
+              <h3 className={s.reportConclusion}>{scenario.name}</h3>
               <div className={s.scroll}>
                 <table>
-                  <thead>
-                    <tr>
-                      <th>출하안</th>
-                      {result.sensitivity.map((x) => (
-                        <th key={x.label}>
-                          {x.label} · {num(x.price)}원/kg
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
+                  <thead><tr><th>출하 시점</th><th>출하 물량</th></tr></thead>
                   <tbody>
-                    {result.scenarios
-                      .filter((x) => x.schedule.length)
-                      .map((x) => (
-                        <tr key={x.name}>
-                          <td>{x.name}</td>
-                          {result.sensitivity?.map((v) => (
-                            <td key={v.label}>{num(v.net[x.name])}</td>
-                          ))}
-                        </tr>
-                      ))}
+                    {scenario.schedule.map((batch, i) => (
+                      <tr key={`${batch.day}-${i}`}>
+                        <td>{batch.day === 0 ? "당일" : `${batch.day}일 후`}</td>
+                        <td>{num(batch.kg)}kg</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            </Panel>
-          )}
-          {reports ? (
-            <div className={s.actions}>
-              {["pdf", "csv"].map((f) => (
-                <a
-                  className={s.primary}
-                  key={f}
-                  download
-                  href={"/api/reports/" + id + "/download?format=" + f}
-                >
-                  <Download size={16} />
-                  {f.toUpperCase()} 다운로드
-                </a>
-              ))}
-            </div>
+              <p><b>예상 순수입:</b> {won(scenario.net)}</p>
+              <p>보관비 {won(scenario.storage)} · 출하비 {won(scenario.shipping)}</p>
+              <p><b>당일 순현금:</b> {won(scenario.cash_today)}</p>
+            </>
           ) : (
-            <Link className={s.primary} to={"/reports?run=" + id}>
-              보고서 보기 <ArrowRight size={16} />
-            </Link>
+            <Empty>권장할 수 있는 출하 계획이 없습니다. 입력 제약조건을 확인해 주세요.</Empty>
           )}
-        </>
+        </Panel>
+        <Panel title="05. 검증 근거 및 한계" meta="데이터 기반 분석과 가격 가정을 구분합니다">
+          <p><b>계산 원칙:</b> 예상 매출에서 보관비와 출하비를 차감하고, 최소 현금 및 출하 기한 조건을 검증합니다.</p>
+          <p>{result.limits}</p>
+          <p>미래 단가는 입력된 가정이며, 실제 시세 예측 또는 자동 출하·판매를 의미하지 않습니다.</p>
+        </Panel>
+      </div>
+      <p className={s.reportFooter}>보고서에는 결과와 근거를, 시나리오 비교 화면에는 대안별 수치와 일정 차이를 제공합니다.</p>
+    </>
+  );
+}
+
+export function Results({ reports = false }: { reports?: boolean }) {
+  const list = useData<Saved[]>("/reports");
+  const [params, setParams] = useSearchParams();
+  const requestedId = params.get("run");
+  const id = requestedId || list.data?.[0]?.id;
+  const report = useData<Report>(id ? `/reports/${encodeURIComponent(id)}` : null);
+  if (!list.data) return <Wait error={list.error} />;
+  if (!id) return <Empty>저장된 분석이 없습니다. <Link to="/agent">첫 분석 시작 →</Link></Empty>;
+  const saved = list.data.find((item) => item.id === id);
+  return (
+    <>
+      <SavedReportSelector items={list.data} id={id} onChange={(next) => setParams({ run: next })} />
+      {report.data ? (
+        reports
+          ? <ReportCenter result={report.data} id={id} saved={saved} />
+          : <ScenarioComparison result={report.data} id={id} />
       ) : (
-        <Wait error={r.error} />
+        <Wait error={report.error} />
       )}
     </>
   );

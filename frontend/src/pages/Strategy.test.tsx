@@ -64,31 +64,40 @@ it("API 오류를 화면에 표시", async () => {
     "서버 연결 실패",
   );
 });
-it("저장된 시나리오와 다운로드 링크 표시", async () => {
-  mock
-    .mockResolvedValueOnce([
-      { id: "r", created: "2025-01-01", recommended: "즉시 전량" },
-    ])
-    .mockResolvedValueOnce({
-      scenarios: [],
-      recommended: "즉시 전량",
-      alternative: null,
-      basis: "가정 기반 시뮬레이션",
-      source: { title: "제주" },
-      params: {},
-      limits: "단가 가정",
-      explanation: "현금 조건 충족",
-    });
-  render(
-    <MemoryRouter>
-      <Results reports />
-    </MemoryRouter>,
-  );
-  expect(
-    (await screen.findByText("PDF 다운로드")).getAttribute("href"),
-  ).toContain("r/download?format=pdf");
+const demoReport = {
+  scenarios: [
+    { name: "즉시 전량", schedule: [{ day: 0, kg: 1000 }], net: 1980000, gross: 2000000, storage: 0, shipping: 20000, cash_today: 1980000, feasible: true, score: 1 },
+    { name: "분할 최적화", schedule: [{ day: 0, kg: 200 }, { day: 10, kg: 800 }], net: 2250000, gross: 2320000, storage: 30000, shipping: 40000, cash_today: 400000, feasible: true, score: 2 },
+  ],
+  recommended: "분할 최적화",
+  alternative: "즉시 전량",
+  basis: "가정 기반 시뮬레이션",
+  source: { title: "제주 감귤 자료", url: "https://example.org" },
+  version: "abc123",
+  params: { inventory_kg: 1000, expected_unit_price_now: 2000, expected_unit_price_future: 2400, storage_cost_per_day: 3, shipping_cost_per_batch: 20000, max_storage_days: 10, min_cash_needed: 400000, risk_preference: "balanced" },
+  limits: "미래 단가는 입력값입니다.",
+  explanation: "보유 물량과 현금 조건을 고려했습니다.",
+};
+const demoSaved = [{ id: "r", created: "2025-01-01", recommended: "분할 최적화", basis: "가정 기반 시뮬레이션" }];
+
+it("시나리오 비교는 손익 차이·전략별 일정에 집중", async () => {
+  mock.mockResolvedValueOnce(demoSaved).mockResolvedValueOnce(demoReport);
+  render(<MemoryRouter><Results /></MemoryRouter>);
+  expect(await screen.findByText("즉시 전량 대비 순수입 증감")).toBeTruthy();
+  expect(screen.getByText("출하 일정 상세 비교")).toBeTruthy();
+  expect(screen.queryByText("PDF 다운로드")).toBeNull();
+  expect(screen.getAllByText("+270,000원").length).toBeGreaterThan(0);
+});
+
+it("보고서 센터는 다운로드·근거·재현 정보에 집중", async () => {
+  mock.mockResolvedValueOnce(demoSaved).mockResolvedValueOnce(demoReport);
+  render(<MemoryRouter><Results reports /></MemoryRouter>);
+  const pdf = await screen.findByText("PDF 다운로드");
+  expect(pdf.closest("a")?.getAttribute("href")).toContain("r/download?format=pdf");
   expect(screen.getByText("CSV 다운로드")).toBeTruthy();
-  expect(screen.getByText("출하 일정과 비용")).toBeTruthy();
+  expect(screen.getByText("02. 분석 입력 조건")).toBeTruthy();
+  expect(screen.getByText("03. 데이터 출처 및 재현 정보")).toBeTruthy();
+  expect(screen.queryByText("즉시 전량 대비 순수입 증감")).toBeNull();
 });
 it("탐색기에 미리보기 표시", async () => {
   mock.mockResolvedValue({ preview: "[]" });
